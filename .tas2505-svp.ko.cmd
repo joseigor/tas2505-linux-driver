@@ -1,0 +1,1 @@
+cmd_/home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id  -T ./scripts/module-common.lds -T ./arch/arm/kernel/module.lds -o /home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.ko /home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.o /home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.mod.o;  true

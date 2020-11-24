@@ -1,0 +1,83 @@
++CONFIG_SND_SOC_SIMPLE_AMPLIFIER=y
++CONFIG_SND_SOC_SPDIF=y
++CONFIG_SND_SIMPLE_CARD=y
+
+
+i2s1: i2s@fc04c000 {
+                                #sound-dai-cells = <0>;
+                                pinctrl-names = "default";
+                                pinctrl-0 = <&pinctrl_i2s1_default>;
+                                status = "okay";
+                        };
+
+
+sound: sound {
+                compatible = "simple-audio-card";
+                simple-audio-card,name = "GenericSoundCard";
+                status = "okay";
+
+                playback_link: simple-audio-card,dai-link@1 {
+                        format = "i2s";
+                        bitclock-master = <&p_cpu_dai>;
+                        frame-master = <&p_cpu_dai>;
+
+                        p_cpu_dai: cpu {
+                                sound-dai = <&i2s1>;
+                                dai-tdm-slot-num = <2>;
+                                dai-tdm-slot-width = <32>;
+                        };
+                        p_codec_dai: codec {
+                                sound-dai = <&codec_out>;
+                        };
+                };
+};
+
+codec_out: spdif-transmitter {
+                compatible = "linux,spdif-dit";
+                #address-cells = <0>;
+                #size-cells = <0>; //set to zero (not relevant)
+                #sound-dai-cells = <0>;
+                status = "okay";
+};
+
+
+
+// Check this
+
+
+-------------------------------------------
+Example 3 - route audio from IMX6 SSI2 through TLV320DAC3100 codec
+through TPA6130A2 amplifier to headphones:
+-------------------------------------------
+
+&i2c0 {
+	codec: tlv320dac3100@18 {
+		compatible = "ti,tlv320dac3100";
+		...
+	}
+
+	amp: tpa6130a2@60 {
+		compatible = "ti,tpa6130a2";
+		...
+	}
+}
+
+sound {
+	compatible = "simple-audio-card";
+	...
+	simple-audio-card,widgets =
+		"Headphone", "Headphone Jack";
+	simple-audio-card,routing =
+		"Headphone Jack", "HPLEFT",
+		"Headphone Jack", "HPRIGHT",
+		"LEFTIN", "HPL",
+		"RIGHTIN", "HPR";
+	simple-audio-card,aux-devs = <&amp>;
+	simple-audio-card,cpu {
+		sound-dai = <&ssi2>;
+	};
+	simple-audio-card,codec {
+		sound-dai = <&codec>;
+		clocks = ...
+	};
+};

@@ -1,0 +1,1 @@
+cmd_/home/jose/svp/tas2505/tas2505-linux-driver/helloworld.ko := arm-linux-gnueabihf-ld -r  -EL  --build-id  -T ./scripts/module-common.lds -T ./arch/arm/kernel/module.lds -o /home/jose/svp/tas2505/tas2505-linux-driver/helloworld.ko /home/jose/svp/tas2505/tas2505-linux-driver/helloworld.o /home/jose/svp/tas2505/tas2505-linux-driver/helloworld.mod.o;  true

@@ -71,6 +71,7 @@ static const struct snd_kcontrol_new tas2505_snd_controls[] = {
 };
 
 static const struct snd_soc_dapm_widget tas2505_dapm_widgets[] = {
+	//STREAM DOMAIN : NOTE: the stream name must match the corresponding stream name in your codec snd_soc_codec_dai.
 	SND_SOC_DAPM_DAC("DAC Channel", "Playback",
 		TAS2505_DACSETUP1, 7, 0),
 	SND_SOC_DAPM_OUT_DRV("Speaker Driver", TAS2505_SPKAMPCTRL1,
@@ -82,6 +83,9 @@ static const struct snd_soc_dapm_route tas2505_audio_map[] = {
 	{ "Speaker Driver", NULL, "DAC Channel" },
 	{ "Speaker", NULL, "Speaker Driver" },
 };
+
+
+/*** BEGIN: REGMAP  CONFIGURATION ***/
 
 static const struct reg_default tas2505_reg_defaults[] = {
 	{ TAS2505_CLKMUX, 0x00 },
@@ -157,8 +161,8 @@ static const struct regmap_range_cfg tas2505_ranges[] = {
 };
 
 static const struct regmap_config tas2505_i2c_regmap = {
-	.reg_bits = 8,
-	.val_bits = 8,
+	.reg_bits = 8, // This mandatory field is the number of bits in a register's address.
+	.val_bits = 8, // This represents the number of bits used to store a register's value. It is a mandatory field.
 	.writeable_reg = tas2505_writeable,
 	.volatile_reg = tas2505_volatile,
 	.reg_defaults = tas2505_reg_defaults,
@@ -168,6 +172,9 @@ static const struct regmap_config tas2505_i2c_regmap = {
 	.num_ranges = ARRAY_SIZE(tas2505_ranges),
 	.max_register = 69 * 128,
 };
+
+/*** END: REGMAP  CONFIGURATION ***/
+
 
 struct tas2505_rate_divs {
 	u32 mclk_p;
@@ -185,15 +192,22 @@ static const struct tas2505_rate_divs tas2505_divs[] = {
 	{ 12288000, 48000, 1, 7, 0, 7, 2, 128 },
 };
 
+
+/*
+This structure contains private data for
+the tas2505 device
+*/
 struct tas2505_priv {
-	struct snd_soc_codec *codec;
-	struct device *dev;
-	struct regmap *regmap;
-	u32 sysclk;
-	u8 p_div;
-	int rate_div_line;
+	struct snd_soc_codec *codec; //
+	struct device *dev; // points to the device node
+	struct regmap *regmap; // pointer to the regmap structure
+	u32 sysclk; //
+	u8 p_div; //
+	int rate_div_line; //
 };
 
+
+// Called by TAS2505_HW_PARAMS to set the clock PLL
 static int tas2505_setup_pll(struct snd_soc_codec *codec,
 	struct snd_pcm_hw_params *params)
 {
@@ -243,6 +257,11 @@ static int tas2505_setup_pll(struct snd_soc_codec *codec,
 
 	return 0;
 }
+
+
+/***
+ * BEGIN: DAI Driver Operations Calbacks
+***/
 
 static int tas2505_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
@@ -390,6 +409,17 @@ found_p_div:
 	return 0;
 }
 
+/***
+ * END: DAI Driver Operations Calbacks
+***/
+
+
+
+
+/***
+ * BEGIN: SET BIAS OFF ASSOCIATED CONTROLS :  tas2505_set_bias_level
+***/
+
 static void tas2505_clk_on(struct snd_soc_codec *codec)
 {
 	u8 mask = TAS2505_PM_MASK;
@@ -431,6 +461,17 @@ static void tas2505_power_off(struct snd_soc_codec *codec)
 		TAS2505_LDO_PLL_HP_LVL_MASK,
 		TAS2505_LDO_PLL_HP_LVL_MASK);
 }
+
+/***
+ * END: SET BIAS OFF ASSOCIATED CONTROLS
+***/
+
+
+
+
+/***
+ * BEGIN: CODEC Driver Operations Callbacks (PROBE, REMOVE, SET_BIAS_LEVEL)
+***/
 
 static int tas2505_set_bias_level(struct snd_soc_codec *codec,
 	enum snd_soc_bias_level level)
@@ -475,12 +516,22 @@ static int tas2505_codec_remove(struct snd_soc_codec *codec)
 	return 0;
 }
 
+/***
+ * END: soc_codec_driver_tas2505 functions PROBE, REMOVE, SET_BIAS_LEVEL
+***/
+
+
+
+
+/***
+ * BEGIN: SND_SOC STRUCTS
+***/
+
+
 static struct snd_soc_codec_driver soc_codec_driver_tas2505 = {
+	/* driver ops */
 	.probe			= tas2505_codec_probe,
 	.remove			= tas2505_codec_remove,
-	.set_bias_level		= tas2505_set_bias_level,
-	.suspend_bias_off	= true,
-
 	.component_driver = {
 		.controls		= tas2505_snd_controls,
 		.num_controls		= ARRAY_SIZE(tas2505_snd_controls),
@@ -489,6 +540,9 @@ static struct snd_soc_codec_driver soc_codec_driver_tas2505 = {
 		.dapm_routes		= tas2505_audio_map,
 		.num_dapm_routes	= ARRAY_SIZE(tas2505_audio_map),
 	},
+	/* codec bias level */
+	.set_bias_level		= tas2505_set_bias_level,
+	.suspend_bias_off	= true,
 };
 
 static const struct snd_soc_dai_ops tas2505_dai_ops = {
@@ -513,18 +567,30 @@ static struct snd_soc_dai_driver tas2505_dai_driver[] = {
 	},
 };
 
+/***
+ * BEGIN: SND_SOC STRUCTS
+***/
+
+
+
+
+/*  probe function is called every time a given device matches with the driver
+struct i2c_client *i2c = the device in the bus
+*/
 static int tas2505_i2c_probe(struct i2c_client *i2c,
 	const struct i2c_device_id *id)
 {
-	struct tas2505_priv *tas2505;
-	struct device_node *np = i2c->dev.of_node;
-	const struct regmap_config *regmap_config = &tas2505_i2c_regmap;
+	struct tas2505_priv *tas2505; // private date for this device
+	struct device_node *np = i2c->dev.of_node; // of_node (open firmware node), contains the information of the device tree 
+	const struct regmap_config *regmap_config = &tas2505_i2c_regmap; //reg map config data
 	int ret;
 
+	// memory allocation in the device driver
 	tas2505 = devm_kzalloc(&i2c->dev, sizeof(*tas2505), GFP_KERNEL);
 	if (tas2505 == NULL)
 		return -ENOMEM;
 
+	/* Setting the REGMAP for I2C*/
 	tas2505->regmap = devm_regmap_init_i2c(i2c, regmap_config);
 	if (IS_ERR(tas2505->regmap)) {
 		ret = PTR_ERR(tas2505->regmap);
@@ -533,15 +599,33 @@ static int tas2505_i2c_probe(struct i2c_client *i2c,
 		return ret;
 	}
 
-	ret = of_get_named_gpio(np, "gpio-reset", 0);
+	/*
+	i2c_bus {
+		tas5086@1b {
+			compatible = "ti,tas5086";
+			reg = <0x1b>;
+			reset-gpio = <&gpio 23 0>;
+			ti,charge-period = <156000>;
+			avdd-supply = <&vdd_3v3_reg>;
+			dvdd-supply = <&vdd_3v3_reg>;
+		};
+	};
+
+	*/
+ 	
+	//get the property name ""gpio-reset" from the configuration in the device tree	
+	ret = of_get_named_gpio(np, "gpio-reset", 0); 
+	// check if ret is a valid GPIO Value
 	if ((ret > 0) && gpio_is_valid(ret)) {
 		devm_gpio_request_one(&i2c->dev, ret, GPIOF_OUT_INIT_HIGH, "reset");
 	}
 
 	tas2505->dev = &i2c->dev;
 
+	// SET the private date for the device
 	dev_set_drvdata(tas2505->dev, tas2505);
 
+	// Register a sound soc codec
 	return snd_soc_register_codec( &i2c->dev, &soc_codec_driver_tas2505,
 		tas2505_dai_driver, ARRAY_SIZE(tas2505_dai_driver));
 }
@@ -552,18 +636,30 @@ static int tas2505_i2c_remove(struct i2c_client *i2c)
 	return 0;
 }
 
+
+
+
+
+
+/*** BEGIN:  Driver and device Provisioning ***/
+
+/* Name that will appear in the compatible property in the DT*/
 static const struct of_device_id tas2505_of_match[] = {
 	{ .compatible = "ti,tas2505" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, tas2505_of_match);
 
+/* Name of the device node*/
 static const struct i2c_device_id tas2505_i2c_id[] = {
 	{ "tas2505", 0 },
 	{}
 };
+
 MODULE_DEVICE_TABLE(i2ic, tas2505_i2c_id);
 
+
+/* Plataform driver structure, in this case specifically for  I2C bus*/
 static struct i2c_driver tas2505_i2c_driver = {
 	.driver = {
 		.name		= "tas2505-codec",
@@ -574,6 +670,15 @@ static struct i2c_driver tas2505_i2c_driver = {
 	.id_table	= tas2505_i2c_id,
 };
 
+/*** END: river and device Provisioning  ***/
+
+
+
+
+
+/*
+This macro will be responsible for registering our module with the platform driver core.
+*/
 module_i2c_driver(tas2505_i2c_driver);
 
 MODULE_DESCRIPTION("ASoC TAS2505 codec driver");

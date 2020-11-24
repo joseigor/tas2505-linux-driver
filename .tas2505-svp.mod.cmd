@@ -1,0 +1,1 @@
+cmd_/home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.mod := { echo  /home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.o; echo; } > /home/jose/svp/tas2505/tas2505-linux-driver/tas2505-svp.mod

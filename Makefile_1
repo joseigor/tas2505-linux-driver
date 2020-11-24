@@ -1,10 +1,8 @@
 ifndef KDIR
-	KDIR=~/svp/caligula-linux
+	KDIR=/lib/modules/$(shell uname -r)/build
 endif
 
 obj-m := tas2505.o
-obj-m := helloworld.o
-obj-m := tas2505-svp.o
 
 PWD := $(shell pwd)
 
